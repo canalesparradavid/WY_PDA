@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>WY PDA TERMINAL</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root{
+    --bg:#050805;
+    --green:#7CFF7C;
+    --dim:#2f8f2f;
+    --danger:#ff3b3b;
+}
+
+html, body{
+    margin:0;
+    height:100%;
+    overflow:hidden;
+    font-family:'Share Tech Mono', monospace;
+    background:var(--bg);
+    color:var(--green);
+}
+
+.scanlines{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.2),
+        rgba(0,0,0,0.2) 1px,
+        transparent 3px
+    );
+}
+
+#app{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+header{
+    padding:10px;
+    border-bottom:1px solid var(--dim);
+    display:grid;
+    grid-template-columns: 80px 1fr 80px;
+    align-items:center;
+    font-size:12px;
+    background:rgba(10,20,12,0.6);
+}
+
+#backBtn{
+    cursor:pointer;
+    visibility:hidden;
+}
+
+#title{
+    text-align:center;
+}
+
+#logoutBtn{
+    cursor:pointer;
+    visibility:hidden;
+    text-align:right;
+}
+
+#content{
+    flex:1;
+    overflow-y:auto;
+    padding:10px;
+}
+
+#login{
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+input, button{
+    padding:12px;
+    border:1px solid var(--dim);
+    background:transparent;
+    color:var(--green);
+    font-family:inherit;
+}
+
+/* PROFILE */
+#userPanel{
+    border:1px solid var(--dim);
+    padding:12px;
+    margin-bottom:15px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    background:rgba(10,20,12,0.4);
+}
+
+#avatar{
+    width:70px;
+    height:70px;
+    border:1px solid var(--dim);
+    object-fit:cover;
+}
+
+#userInfo{
+    font-size:12px;
+    line-height:1.4;
+    width:100%;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+}
+
+/* CARDS */
+.card{
+    border:1px solid var(--dim);
+    padding:12px;
+    margin-bottom:10px;
+    background:rgba(10,20,12,0.6);
+    cursor:pointer;
+}
+
+.hidden{display:none !important;}
+.danger{color:var(--danger);}
+
+/* 🔥 LOG STYLE NUEVO (ORIGINAL WY FEEL) */
+.logline{
+    padding:4px 0;
+    font-size:12px;
+    border-bottom:1px solid rgba(47,143,47,0.15);
+    opacity:0.95;
+    letter-spacing:0.3px;
+}
+
+.logwrap{
+    border:1px solid var(--dim);
+    padding:10px;
+    background:rgba(0,0,0,0.25);
+}
+</style>
+</head>
+
+<body>
+
+<div class="scanlines"></div>
+
+<div id="app">
+
+<header>
+    <div id="backBtn" onclick="goBack()">← BACK</div>
+    <div id="title">WY PDA // LV-426</div>
+    <div id="logoutBtn" onclick="logout()">LOGOUT</div>
+</header>
+
+<div id="content">
+
+<!-- LOGIN -->
+<div id="login">
+
+    <h3>WY SECURITY ACCESS</h3>
+
+    <input id="user" placeholder="USER ID">
+    <input id="pass" type="password" placeholder="PASSWORD">
+
+    <button onclick="login()">AUTHENTICATE</button>
+
+    <div id="msg" class="danger"></div>
+
+</div>
+
+<!-- HOME -->
+<div id="home" class="hidden">
+
+    <div id="userPanel">
+        <img id="avatar" src="">
+        <div id="userInfo">
+
+            <div class="row"><b>OPERADOR:</b><div id="userName"></div></div>
+            <div class="row"><b>RANGO:</b><div id="userRole"></div></div>
+            <div class="row"><b>ID WY:</b><div id="userId"></div></div>
+            <div class="row"><b>ESTADO:</b><div id="userState"></div></div>
+            <div class="row"><b>MISIÓN:</b><div id="userMission"></div></div>
+
+        </div>
+    </div>
+
+    <div id="menu"></div>
+
+</div>
+
+<!-- FILES -->
+<div id="filesView" class="hidden">
+    <h3 id="filesTitle"></h3>
+    <div id="filesList"></div>
+</div>
+
+<!-- FILE DETAIL -->
+<div id="fileView" class="hidden">
+    <h3 id="fileTitle"></h3>
+    <pre id="fileContent" style="white-space:pre-wrap;"></pre>
+</div>
+
+</div>
+
+<script>
+
+/* ---------------- LOGS ---------------- */
+
+const logs = [
+    "ENTRY 01: Atmospheric processor instability detected",
+    "ENTRY 07: Unknown biological signal confirmed",
+    "ENTRY 12: Communication blackout surface relay",
+    "ENTRY 14: Motion detected ventilation shafts",
+    "ENTRY 18: Weyland-Yutani override protocol engaged"
+];
+
+/* ---------------- USERS ---------------- */
+
+const users = {
+
+    antonio:{
+        name:"ANTONIO GARCIA",
+        role:"WARRANT OFFICER",
+        id:"WY-7762-AX",
+        state:"ACTIVO",
+        mission:"LV-426 SURVIVAL UNIT",
+        img:"antonio.jpg",
+        password:"nostromo",
+        classified:false
+    },
+
+    samuel:{
+        name:"SAMUEL PARKER",
+        role:"CHIEF ENGINEER",
+        id:"WY-4421-ER",
+        state:"EN SERVICIO",
+        mission:"USCSS NOSTROMO",
+        img:"profesor.jpg",
+        password:"nostromo",
+        classified:true
+    }
+};
+
+let currentUser = null;
+let stack = ["home"];
+
+/* ---------------- LOGIN ---------------- */
+
+function login(){
+
+    const u = document.getElementById("user").value;
+    const p = document.getElementById("pass").value;
+
+    const msg = document.getElementById("msg");
+
+    if(users[u] && users[u].password === p){
+
+        currentUser = u;
+        const data = users[u];
+
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("home").classList.remove("hidden");
+
+        document.getElementById("logoutBtn").style.visibility = "visible";
+
+        document.getElementById("avatar").src = data.img;
+        document.getElementById("userName").textContent = data.name;
+        document.getElementById("userRole").textContent = data.role;
+        document.getElementById("userId").textContent = data.id;
+        document.getElementById("userState").textContent = data.state;
+        document.getElementById("userMission").textContent = data.mission;
+
+        buildMenu(data);
+
+        stack = ["home"];
+        updateUI();
+
+    } else {
+        msg.textContent = "ACCESS DENIED";
+    }
+}
+
+/* ---------------- MENU ---------------- */
+
+function buildMenu(data){
+
+    const menu = document.getElementById("menu");
+    menu.innerHTML = "";
+
+    const items = [
+        {name:"SECURITY LOGS", type:"logs"},
+        {name:"MISSION FILES", type:"mission"}
+    ];
+
+    if(data.classified){
+        items.push({name:"CLASSIFIED FILES", type:"classified"});
+    }
+
+    items.forEach(item=>{
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = item.name;
+
+        div.onclick = ()=>openSection(item.type);
+        menu.appendChild(div);
+    });
+}
+
+/* ---------------- LOGS FIXADO (ESTILO ORIGINAL) ---------------- */
+
+function showLogs(){
+
+    document.getElementById("home").classList.add("hidden");
+    document.getElementById("fileView").classList.add("hidden");
+    document.getElementById("filesView").classList.remove("hidden");
+
+    document.getElementById("filesTitle").textContent = "SECURITY LOGS";
+
+    const c = document.getElementById("filesList");
+    c.innerHTML = "";
+
+    logs.forEach(line => {
+
+        // 🔹 bloque independiente por log (esto es lo importante)
+        const block = document.createElement("div");
+        block.style.border = "1px solid rgba(47,143,47,0.35)";
+        block.style.padding = "8px 10px";
+        block.style.marginBottom = "8px";
+        block.style.background = "rgba(0,0,0,0.25)";
+
+        const text = document.createElement("div");
+        text.style.fontSize = "12px";
+        text.style.lineHeight = "1.4";
+        text.style.letterSpacing = "0.3px";
+        text.style.opacity = "0.95";
+
+        text.textContent = line;
+
+        block.appendChild(text);
+        c.appendChild(block);
+    });
+
+    stack.push("filesView");
+    updateUI();
+}
+
+/* ---------------- RESTO SIN CAMBIOS ---------------- */
+
+function openSection(type){
+
+    if(type === "logs"){
+        showLogs();
+        return;
+    }
+
+    let data = [];
+
+    if(type === "mission"){
+        data = [
+            {title:"SURVEY REPORT LV-426", content:"Atmospheric processors failing. Colony silent."},
+            {title:"CONTACT STATUS", content:"No survivors detected on surface."},
+            {title:"CONTAINMENT", content:"Quarantine protocol recommended."}
+        ];
+    }
+
+    if(type === "classified"){
+        data = [
+            {title:"PROJECT BLACK GARDEN", content:"Specimen containment breach risk HIGH."},
+            {title:"XX121 BEHAVIOR", content:"Hive intelligence confirmed."},
+            {title:"DIRECTIVE 937", content:"Crew expendable. Data priority override."}
+        ];
+    }
+
+    showList(type.toUpperCase(), data);
+}
+
+function showList(title, list){
+
+    document.getElementById("home").classList.add("hidden");
+    document.getElementById("filesView").classList.remove("hidden");
+
+    document.getElementById("filesTitle").textContent = title;
+
+    const c = document.getElementById("filesList");
+    c.innerHTML = "";
+
+    list.forEach(item=>{
+
+        const d = document.createElement("div");
+        d.className = "card";
+        d.textContent = item.title;
+
+        d.onclick = ()=>openFile(item);
+
+        c.appendChild(d);
+    });
+
+    stack.push("filesView");
+    updateUI();
+}
+
+function openFile(item){
+
+    document.getElementById("filesView").classList.add("hidden");
+    document.getElementById("fileView").classList.remove("hidden");
+
+    document.getElementById("fileTitle").textContent = item.title;
+    document.getElementById("fileContent").textContent = item.content;
+
+    stack.push("fileView");
+    updateUI();
+}
+
+function goBack(){
+
+    if(stack.length <= 1) return;
+
+    stack.pop();
+
+    const prev = stack[stack.length - 1];
+
+    document.querySelectorAll("#content > div").forEach(d=>{
+        d.classList.add("hidden");
+    });
+
+    document.getElementById(prev).classList.remove("hidden");
+
+    updateUI();
+}
+
+function updateUI(){
+    document.getElementById("backBtn").style.visibility =
+        stack.length > 1 ? "visible" : "hidden";
+}
+
+function logout(){
+    location.reload();
+}
+
+updateUI();
+
+</script>
+
+</body>
+</html>
