@@ -448,6 +448,14 @@ function logout(){
 
 updateUI();
 
+const elem = document.documentElement;
+
+if (elem.requestFullscreen) {
+    await elem.requestFullscreen();
+} else if (elem.webkitRequestFullscreen) {
+    await elem.webkitRequestFullscreen();
+}
+
 </script>
 
 </body>
