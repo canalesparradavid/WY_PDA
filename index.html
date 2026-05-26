@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050805">
 
 <title>WY PDA TERMINAL</title>
 
@@ -38,7 +41,7 @@ html, body{
 }
 
 #app{
-    height:100vh;
+    height:100dvh;
     display:flex;
     flex-direction:column;
 }
@@ -448,13 +451,43 @@ function logout(){
 
 updateUI();
 
-const elem = document.documentElement;
+async function forceFullscreen() {
 
-if (elem.requestFullscreen) {
-    await elem.requestFullscreen();
-} else if (elem.webkitRequestFullscreen) {
-    await elem.webkitRequestFullscreen();
+    const el = document.documentElement;
+
+    try {
+
+        if (el.requestFullscreen) {
+            await el.requestFullscreen();
+        }
+        else if (el.webkitRequestFullscreen) {
+            await el.webkitRequestFullscreen();
+        }
+
+    } catch(e) {
+        console.log("fullscreen blocked");
+    }
 }
+
+/* intento inmediato */
+forceFullscreen();
+
+/* Android normalmente exige interacción */
+document.addEventListener("click", forceFullscreen, { once:true });
+document.addEventListener("touchstart", forceFullscreen, { once:true });
+
+/* reintentar si sale */
+document.addEventListener("fullscreenchange", () => {
+
+    if (!document.fullscreenElement) {
+
+        setTimeout(() => {
+            forceFullscreen();
+        }, 300);
+
+    }
+
+});
 
 </script>
 
